@@ -8,8 +8,11 @@ use App\Models\GradeRecord;
 use App\Models\Student;
 use App\Models\Subject;
 use App\Services\ScholarshipService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Redirect;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ScholarshipController extends Controller
 {
@@ -35,15 +38,18 @@ class ScholarshipController extends Controller
         ]);
     }
 
-    public function uploadSubjects(Request $request)
+    public function uploadSubjects(Request $request): RedirectResponse
     {
-        $request->validate(['subjects_file' => ['required', 'file', 'mimes:xlsx,xls']]);
+        $request->validate([
+            'subjects_file' => ['required', 'file', 'mimes:xlsx,xls'],
+        ]);
+
         $this->service->importSubjects($request->file('subjects_file'));
 
-        return redirect('/')->with('status', 'Subjects imported.');
+        return redirect('/')->with('status', 'Priekšmetu fails veiksmīgi ielādēts.');
     }
 
-    public function calculate(Request $request)
+    public function calculate(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'period_start' => ['required', 'date'],
@@ -70,13 +76,20 @@ class ScholarshipController extends Controller
             'grade_table' => $gradeTable,
         ], $request->file('grades_file'));
 
-        return redirect('/results?session=' . $session->id);
+        return redirect('/results?session='.$session->id);
     }
 
     public function results(Request $request)
     {
         $sessionId = $request->integer('session') ?: CalculationSession::max('id');
-        $session = CalculationSession::findOrFail($sessionId);
+        if (!$sessionId) {
+            return Redirect::to('/')->with('status', 'Vispirms augšupielādē failus un palaid aprēķinu.');
+        }
+
+        $session = CalculationSession::find($sessionId);
+        if (!$session) {
+            return Redirect::to('/')->with('status', 'Aprēķina sesija netika atrasta. Lūdzu, aprēķini vēlreiz.');
+        }
 
         $results = $this->service->buildResults($session);
 
@@ -87,9 +100,18 @@ class ScholarshipController extends Controller
         ]);
     }
 
-    public function export(Request $request)
+    public function export(Request $request): BinaryFileResponse|RedirectResponse
     {
-        $session = CalculationSession::findOrFail($request->integer('session') ?: CalculationSession::max('id'));
+        $sessionId = $request->integer('session') ?: CalculationSession::max('id');
+        if (!$sessionId) {
+            return Redirect::to('/')->with('status', 'Nav ko eksportēt, jo vēl nav rezultātu.');
+        }
+
+        $session = CalculationSession::find($sessionId);
+        if (!$session) {
+            return Redirect::to('/')->with('status', 'Aprēķina sesija netika atrasta. Lūdzu, aprēķini vēlreiz.');
+        }
+
         $results = $this->service->buildResults($session);
 
         return Excel::download(new ResultsExport($results['items']), 'scholarship_results.xlsx');
@@ -118,6 +140,7 @@ class ScholarshipController extends Controller
             'total' => number_format($total, 2, '.', ''),
             'difference' => number_format($budget - $total, 2, '.', ''),
             'difference_positive' => $budget - $total >= 0,
+            'saved_message' => 'Izmaiņas saglabātas.',
         ]);
     }
 }
