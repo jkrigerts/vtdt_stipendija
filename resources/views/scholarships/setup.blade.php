@@ -65,7 +65,12 @@
             </div>
             <span class="syne font-700 text-sm tracking-wide">Stipendiju kalkulators</span>
         </div>
-        <span class="mono text-xs text-stone-500">{{ date('Y') }}/{{ date('Y') + 1 }}</span>
+        <span class="mono text-xs text-stone-500">{{ date('Y') }}/{{ date('Y') + 1 }}
+                         <form action="/logout" method="POST" onclick="event.preventDefault(); this.closest('form').submit();" style="cursor: pointer">
+                            @csrf
+                                {{ __('Logout') }}
+                         </form>
+</span>
     </div>
 </div>
 
