@@ -46,7 +46,7 @@ class ScholarshipController extends Controller
 
         $this->service->importSubjects($request->file('subjects_file'));
 
-        return redirect('/')->with('status', 'Priekšmetu fails veiksmīgi ielādēts.');
+        return redirect('/dashboard')->with('status', 'Priekšmetu fails veiksmīgi ielādēts.');
     }
 
     public function calculate(Request $request): RedirectResponse
@@ -83,12 +83,12 @@ class ScholarshipController extends Controller
     {
         $sessionId = $request->integer('session') ?: CalculationSession::max('id');
         if (!$sessionId) {
-            return Redirect::to('/')->with('status', 'Vispirms augšupielādē failus un palaid aprēķinu.');
+            return Redirect::to('/dashboard')->with('status', 'Vispirms augšupielādē failus un palaid aprēķinu.');
         }
 
         $session = CalculationSession::find($sessionId);
         if (!$session) {
-            return Redirect::to('/')->with('status', 'Aprēķina sesija netika atrasta. Lūdzu, aprēķini vēlreiz.');
+            return Redirect::to('/dashboard')->with('status', 'Aprēķina sesija netika atrasta. Lūdzu, aprēķini vēlreiz.');
         }
 
         $results = $this->service->buildResults($session);
@@ -104,12 +104,12 @@ class ScholarshipController extends Controller
     {
         $sessionId = $request->integer('session') ?: CalculationSession::max('id');
         if (!$sessionId) {
-            return Redirect::to('/')->with('status', 'Nav ko eksportēt, jo vēl nav rezultātu.');
+            return Redirect::to('/dashboard')->with('status', 'Nav ko eksportēt, jo vēl nav rezultātu.');
         }
 
         $session = CalculationSession::find($sessionId);
         if (!$session) {
-            return Redirect::to('/')->with('status', 'Aprēķina sesija netika atrasta. Lūdzu, aprēķini vēlreiz.');
+            return Redirect::to('/dashboard')->with('status', 'Aprēķina sesija netika atrasta. Lūdzu, aprēķini vēlreiz.');
         }
 
         $results = $this->service->buildResults($session);

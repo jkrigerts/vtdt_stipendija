@@ -118,7 +118,7 @@
 
             {{-- Actions --}}
             <div class="flex items-center gap-2">
-                <a href="/" class="px-3 py-1.5 rounded-lg border border-stone-600 text-stone-300 text-xs hover:bg-stone-800 transition-colors mono">
+                <a href="/dashboard" class="px-3 py-1.5 rounded-lg border border-stone-600 text-stone-300 text-xs hover:bg-stone-800 transition-colors mono">
                     ← Pārrēķināt
                 </a>
                 <a href="/results/export?session={{ $session->id }}"
