@@ -125,6 +125,12 @@
                    class="px-3 py-1.5 rounded-lg bg-amber-400 text-stone-900 text-xs font-medium hover:bg-amber-300 transition-colors mono">
                     ⬇ Excel
                 </a>
+                <span class="mono text-xs text-stone-500">{{ date('Y') }}/{{ date('Y') + 1 }}
+                         <form action="/logout" method="POST" onclick="event.preventDefault(); this.closest('form').submit();" style="cursor: pointer">
+                            @csrf
+                                {{ __('Logout') }}
+                         </form>
+                </span>
             </div>
         </div>
     </div>

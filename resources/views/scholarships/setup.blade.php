@@ -65,12 +65,20 @@
             </div>
             <span class="syne font-700 text-sm tracking-wide">Stipendiju kalkulators</span>
         </div>
-        <span class="mono text-xs text-stone-500">{{ date('Y') }}/{{ date('Y') + 1 }}
+                    {{-- Actions --}}
+            <div class="flex items-center gap-2">
+                <a href="/results" class="px-3 py-1.5 rounded-lg border border-stone-600 text-stone-300 text-xs hover:bg-stone-800 transition-colors mono">
+                    → Rezultāti
+                </a>
+                        <span class="mono text-xs text-stone-500">{{ date('Y') }}/{{ date('Y') + 1 }}
                          <form action="/logout" method="POST" onclick="event.preventDefault(); this.closest('form').submit();" style="cursor: pointer">
                             @csrf
                                 {{ __('Logout') }}
                          </form>
-</span>
+        </span>
+            </div>
+
+
     </div>
 </div>
 

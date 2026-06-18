@@ -26,6 +26,6 @@ class ResultsExport implements FromCollection, WithHeadings
 
     public function headings(): array
     {
-        return ['Uzvards', 'Vards', 'Personas kods', 'Grupa', 'Videjais vertejums', 'Stipendija (EUR)'];
+        return ['Uzvārds', 'Vārds', 'Personas kods', 'Grupa', 'Vidējais vērtējums', 'Stipendija (EUR)'];
     }
 }
