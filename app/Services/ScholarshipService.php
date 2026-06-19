@@ -41,20 +41,25 @@ class ScholarshipService
 
     public function calculate(array $data, UploadedFile $file): CalculationSession
     {
-        return DB::transaction(function () use ($data, $file) {
-            GradeRecord::query()->delete();
-            Student::query()->delete();
-            CalculationSession::query()->delete();
+        
+            ini_set('memory_limit', '2048M'); 
+            set_time_limit(300);
+            
+            $sheets = Excel::toArray([], $file);
+    
+            return DB::transaction(function () use ($data, $sheets) {
+                GradeRecord::query()->delete();
+                Student::query()->delete();
+                CalculationSession::query()->delete();
 
-            $session = CalculationSession::create([
-                'period_start' => $data['period_start'],
-                'period_end' => $data['period_end'],
-                'monthly_budget' => $data['monthly_budget'],
-                'grade_table' => $data['grade_table'],
-            ]);
+                $session = CalculationSession::create([
+                    'period_start' => $data['period_start'],
+                    'period_end' => $data['period_end'],
+                    'monthly_budget' => $data['monthly_budget'],
+                    'grade_table' => $data['grade_table'],
+                ]);
 
             $subjects = Subject::query()->pluck('category', 'name');
-            $sheets = Excel::toArray([], $file);
 
             foreach ($sheets as $sheet) {
                 $groupName = trim((string) ($sheet[0][0] ?? ''));

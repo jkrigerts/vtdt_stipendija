@@ -51,8 +51,6 @@ class ScholarshipController extends Controller
 
     public function calculate(Request $request): RedirectResponse
     {
-        ini_set('memory_limit', '2048M'); 
-        set_time_limit(300);
     
         $data = $request->validate([
             'period_start' => ['required', 'date'],
