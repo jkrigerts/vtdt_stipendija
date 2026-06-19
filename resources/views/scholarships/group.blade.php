@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="lv">
 <head>
     <meta charset="utf-8">
@@ -138,41 +138,13 @@
 
 <div class="max-w-7xl mx-auto px-4 md:px-6 py-6 space-y-6">
 
-    {{-- ─── STATS CARDS ────────────────────────────────────────────── --}}
-    <div class="grid grid-cols-3 gap-3">
-        <div class="bg-white rounded-2xl border border-stone-200 shadow-sm p-4 md:p-5">
-            <p class="mono text-[10px] uppercase tracking-widest text-stone-400">Kopējā summa</p>
-            <p id="totalPayout" class="syne font-800 text-xl md:text-3xl mt-1 tracking-tight">
-                {{ number_format($results['total'], 2) }}
-                <span class="text-sm md:text-base font-400 text-stone-400">EUR</span>
-            </p>
-        </div>
-        <div class="bg-white rounded-2xl border border-stone-200 shadow-sm p-4 md:p-5">
-            <p class="mono text-[10px] uppercase tracking-widest text-stone-400">Budžets</p>
-            <p class="syne font-800 text-xl md:text-3xl mt-1 tracking-tight">
-                {{ number_format($session->monthly_budget, 2) }}
-                <span class="text-sm md:text-base font-400 text-stone-400">EUR</span>
-            </p>
-        </div>
-        @php
-            $diffCardBg    = $diff > 0 ? 'bg-emerald-50 border-emerald-200' : ($diff < 0 ? 'bg-red-50 border-red-200' : 'bg-white border-stone-200');
-            $diffTextColor = $diff > 0 ? 'text-emerald-600' : ($diff < 0 ? 'text-red-600' : 'text-stone-500');
-        @endphp
-        <div id="diffCard" class="rounded-2xl border shadow-sm p-4 md:p-5 {{ $diffCardBg }}">
-            <p class="mono text-[10px] uppercase tracking-widest text-stone-400">Starpība</p>
-            <p id="budgetDifference" class="syne font-800 text-xl md:text-3xl mt-1 tracking-tight {{ $diffTextColor }}">
-                {{ number_format($diff, 2) }}
-                <span class="text-sm md:text-base font-400">EUR</span>
-            </p>
-        </div>
-    </div>
 
-        {{-- ─── GROUP ANCHOR NAVIGATION ────────────────────────────────── --}}
+    {{-- ─── GROUP ANCHOR NAVIGATION ────────────────────────────────── --}}
     @if(count($groups) > 1)
         <div class="flex flex-wrap items-center gap-2">
             <span class="mono text-xs text-stone-400 mr-1">Pāriet uz:</span>
             @foreach($groups as $groupName => $group)
-                <a href="/results/{{ $groupName }}"
+                <a href="#group-{{ Str::slug($groupName) }}"
                    class="group-anchor-btn mono text-xs px-3 py-1.5 rounded-lg border border-stone-300 bg-white hover:border-stone-500 transition-colors scroll-smooth">
                     {{ $groupName }}
                     <span class="text-stone-400 ml-1">{{ count($group['students']) }}</span>
@@ -181,51 +153,90 @@
         </div>
     @endif
 
-    {{-- ─── SUMMARY TABLE ──────────────────────────────────────────── --}}
-    <div class="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
-        <div class="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
-            <h2 class="syne font-700">Kopsavilkums pa skolēniem</h2>
-            <p class="text-xs text-stone-400 hidden sm:block">Klikšķini uz rindiņas, lai ritinātu uz grupu</p>
-        </div>
-        <div class="overflow-auto">
-            <table class="w-full text-sm" id="studentsTable">
-                <thead>
-                <tr class="bg-stone-50 border-b border-stone-100">
-                    <th class="text-left py-3 px-4 mono text-[11px] uppercase tracking-widest text-stone-400 font-medium">Uzvārds</th>
-                    <th class="text-left py-3 px-4 mono text-[11px] uppercase tracking-widest text-stone-400 font-medium">Vārds</th>
-                    <th class="text-left py-3 px-4 mono text-[11px] uppercase tracking-widest text-stone-400 font-medium hidden md:table-cell">Personas kods</th>
-                    <th class="text-left py-3 px-4 mono text-[11px] uppercase tracking-widest text-stone-400 font-medium">Grupa</th>
-                    <th class="text-left py-3 px-4 mono text-[11px] uppercase tracking-widest text-stone-400 font-medium">Vidējais</th>
-                    <th class="text-left py-3 px-4 mono text-[11px] uppercase tracking-widest text-stone-400 font-medium">Stipendija</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach($results['items'] as $row)
-                    <tr class="border-t border-stone-100 hover:bg-amber-50 cursor-pointer transition-colors"
-                        data-student-id="{{ $row['student']->id }}"
-                        data-group="{{ Str::slug($row['student']->group_name) }}"
-                        onclick="scrollToStudent({{ $row['student']->id }}, '{{ Str::slug($row['student']->group_name) }}')">
-                        <td class="py-3 px-4 font-medium">{{ $row['student']->surname }}</td>
-                        <td class="py-3 px-4">{{ $row['student']->first_name }}</td>
-                        <td class="py-3 px-4 mono text-xs text-stone-400 hidden md:table-cell">{{ $row['student']->personal_id }}</td>
-                        <td class="py-3 px-4">
-                            <span class="mono text-xs bg-stone-100 text-stone-600 px-2 py-0.5 rounded-full">{{ $row['student']->group_name }}</span>
-                        </td>
-                        <td class="py-3 px-4 mono avg">{{ $row['average'] ?? '—' }}</td>
-                        <td class="py-3 px-4">
-                            @php $s = $row['scholarship']; @endphp
-                            <span class="scholarship mono font-medium {{ $s > 0 ? 'text-emerald-600' : 'text-stone-400' }}">{{ number_format($s, 2) }}</span>
-                            <span class="text-stone-400 text-xs">EUR</span>
-                        </td>
-                    </tr>
-                @endforeach
-                </tbody>
-            </table>
-        </div>
+    {{-- ─── GROUP DETAIL SECTIONS ──────────────────────────────────── --}}
+    <div class="space-y-5">
+        @foreach($groups as $groupName => $group)
+            <section id="group-{{ Str::slug($groupName) }}" class="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden scroll-mt-16">
+
+                {{-- Group header --}}
+                <div class="flex items-center justify-between px-5 py-4 bg-stone-50 border-b border-stone-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center syne font-800 text-sm">
+                            {{ strtoupper(substr($groupName, 0, 2)) }}
+                        </div>
+                        <div>
+                            <h2 class="syne font-700 text-lg leading-none">{{ $groupName }}</h2>
+                            <p class="mono text-xs text-stone-400 mt-0.5">{{ count($group['students']) }} skolēni</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-stone-400 hidden md:block">Pārslēdz, lai izslēgtu atzīmi no vidējā</p>
+                </div>
+
+                {{-- Group table --}}
+                <div class="overflow-auto">
+                    <table class="min-w-full text-sm">
+                        <thead>
+                        <tr class="bg-stone-50/80">
+                            <th class="sticky left-0 z-10 bg-stone-50 border-b border-r border-stone-100 px-4 py-3 text-left min-w-[200px] mono text-[11px] uppercase tracking-widest text-stone-400 font-medium">Skolēns</th>
+                            <th class="border-b border-r border-stone-100 px-4 py-3 text-left min-w-[110px] mono text-[11px] uppercase tracking-widest text-stone-400 font-medium">Vidējais</th>
+                            <th class="border-b border-r border-stone-100 px-4 py-3 text-left min-w-[130px] mono text-[11px] uppercase tracking-widest text-stone-400 font-medium">Stipendija</th>
+                            @foreach($group['subjects'] as $subject)
+                                <th class="border-b border-r border-stone-100 px-4 py-3 text-left min-w-[190px] mono text-[11px] uppercase tracking-widest text-stone-400 font-medium">{{ $subject }}</th>
+                            @endforeach
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach($group['students'] as $student)
+                            @php $summaryRow = collect($results['items'])->firstWhere('student.id', $student->id); @endphp
+                            <tr class="border-t border-stone-100 hover:bg-stone-50/60 transition-colors"
+                                id="student-row-{{ $student->id }}">
+                                <td class="sticky left-0 z-10 bg-white border-r border-stone-100 px-4 py-3 font-medium">
+                                    {{ $student->surname }} {{ $student->first_name }}
+                                </td>
+                                <td class="border-r border-stone-100 px-4 py-3">
+                                    <span class="group-avg mono" data-student-id="{{ $student->id }}">
+                                        {{ $summaryRow['average'] ?? '—' }}
+                                    </span>
+                                </td>
+                                <td class="border-r border-stone-100 px-4 py-3">
+                                    @php $gs = $summaryRow['scholarship'] ?? 0; @endphp
+                                    <span class="group-scholarship mono font-medium {{ $gs > 0 ? 'text-emerald-600' : 'text-stone-400' }}"
+                                          data-student-id="{{ $student->id }}">{{ number_format($gs, 2) }}</span>
+                                    <span class="text-stone-400 text-xs">EUR</span>
+                                </td>
+                                @foreach($group['subjects'] as $subject)
+                                    @php $grade = $student->grades->firstWhere('subject_name', $subject); @endphp
+                                    <td class="border-r border-stone-100 px-4 py-3 align-middle">
+                                        @if($grade)
+                                            <div class="flex items-center gap-3">
+                                                <p class="grade-value mono font-medium {{ $grade->excluded ? 'excluded' : '' }}"
+                                                   data-grade-id="{{ $grade->id }}">{{ $grade->grade_value }}</p>
+                                                {{-- Toggle switch instead of tiny checkbox --}}
+                                                <label class="flex items-center gap-1.5 cursor-pointer select-none" title="{{ $grade->excluded ? 'Ieslēgt' : 'Izslēgt' }}">
+                                                    <div class="toggle-track {{ $grade->excluded ? 'on' : '' }}"
+                                                         data-grade-id="{{ $grade->id }}"
+                                                         data-student-id="{{ $student->id }}"
+                                                         role="switch"
+                                                         aria-checked="{{ $grade->excluded ? 'true' : 'false' }}"
+                                                         tabindex="0">
+                                                        <div class="toggle-thumb"></div>
+                                                    </div>
+                                                    <span class="text-xs text-stone-400 hidden sm:inline">Izslēgt</span>
+                                                </label>
+                                            </div>
+                                        @else
+                                            <span class="text-stone-300 mono">—</span>
+                                        @endif
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        @endforeach
     </div>
-
-
-
 </div>
 
 <script>

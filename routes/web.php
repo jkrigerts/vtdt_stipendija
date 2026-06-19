@@ -10,6 +10,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/subjects/upload', [ScholarshipController::class, 'uploadSubjects']);
     Route::post('/calculate', [ScholarshipController::class, 'calculate']);
     Route::get('/results', [ScholarshipController::class, 'results']);
+    Route::get('/results/{group_name}', [ScholarshipController::class, 'group']);
     Route::get('/results/export', [ScholarshipController::class, 'export']);
     Route::post('/results/exclude-grade', [ScholarshipController::class, 'excludeGrade']);
 });

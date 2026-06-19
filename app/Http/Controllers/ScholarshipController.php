@@ -51,6 +51,9 @@ class ScholarshipController extends Controller
 
     public function calculate(Request $request): RedirectResponse
     {
+        ini_set('memory_limit', '2048M'); 
+        set_time_limit(300);
+    
         $data = $request->validate([
             'period_start' => ['required', 'date'],
             'period_end' => ['required', 'date', 'after_or_equal:period_start'],
@@ -97,6 +100,29 @@ class ScholarshipController extends Controller
             'session' => $session,
             'results' => $results,
             'groups' => $this->service->groupMatrix($session),
+        ]);
+    }
+
+    public function group(Request $request)
+    {
+        $sessionId = $request->integer('session') ?: CalculationSession::max('id');
+        $group_name = $request->group_name ?? "";
+        if (!$sessionId) {
+            return Redirect::to('/dashboard')->with('status', 'Vispirms augšupielādē failus un palaid aprēķinu.');
+        }
+
+        $session = CalculationSession::find($sessionId);
+        if (!$session) {
+            return Redirect::to('/dashboard')->with('status', 'Aprēķina sesija netika atrasta. Lūdzu, aprēķini vēlreiz.');
+        }
+
+
+        $results = $this->service->buildResults($session, $group_name);
+
+        return view('scholarships.group', [
+            'session' => $session,
+            'results' => $results,
+            'groups' => $this->service->groupMatrix($session, $group_name),
         ]);
     }
 

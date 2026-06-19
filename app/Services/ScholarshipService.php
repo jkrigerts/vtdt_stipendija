@@ -147,9 +147,13 @@ class ScholarshipService
         });
     }
 
-    public function buildResults(CalculationSession $session): array
+    public function buildResults(CalculationSession $session, $group = ""): array
     {
-        $students = Student::query()->where('session_id', $session->id)
+        $students = Student::query()
+            ->where('session_id', $session->id)
+            ->when($group, function ($query, $group) {
+                return $query->where('group_name', $group);
+            })
             ->with('grades')
             ->orderBy('group_name')
             ->orderBy('surname')
@@ -217,9 +221,11 @@ class ScholarshipService
         return ['average' => $average, 'scholarship' => $scholarship, 'insufficient' => $insufficient];
     }
 
-    public function groupMatrix(CalculationSession $session): Collection
+    public function groupMatrix(CalculationSession $session, $group = ""): Collection
     {
-        $students = Student::query()->where('session_id', $session->id)->with('grades')->get()->groupBy('group_name');
+        $students = Student::query()->where('session_id', $session->id)->when($group, function ($query, $group) {
+                return $query->where('group_name', $group);
+            })->with('grades')->get()->groupBy('group_name');
 
         return $students->map(function (Collection $groupStudents) {
             $subjects = $groupStudents->flatMap(fn (Student $s) => $s->grades->pluck('subject_name'))->unique()->sort()->values();
