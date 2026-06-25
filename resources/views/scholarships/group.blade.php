@@ -118,6 +118,9 @@
 
             {{-- Actions --}}
             <div class="flex items-center gap-2">
+                <a href="/results" class="px-3 py-1.5 rounded-lg border border-stone-600 text-stone-300 text-xs hover:bg-stone-800 transition-colors mono">
+                    ← Rezultāti
+                </a>
                 <a href="/dashboard" class="px-3 py-1.5 rounded-lg border border-stone-600 text-stone-300 text-xs hover:bg-stone-800 transition-colors mono">
                     ← Pārrēķināt
                 </a>
