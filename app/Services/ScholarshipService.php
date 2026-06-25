@@ -39,118 +39,179 @@ class ScholarshipService
         return Subject::orderBy('name')->get()->toArray();
     }
 
-    public function calculate(array $data, UploadedFile $file): CalculationSession
-    {
-        
-            ini_set('memory_limit', '2048M'); 
-            set_time_limit(300);
-            
-            $sheets = Excel::toArray([], $file);
-    
-            return DB::transaction(function () use ($data, $sheets) {
-                GradeRecord::query()->delete();
-                Student::query()->delete();
-                CalculationSession::query()->delete();
+public function calculate(array $data, UploadedFile $file): CalculationSession
+{
+    return DB::transaction(function () use ($data, $file) {
 
-                $session = CalculationSession::create([
-                    'period_start' => $data['period_start'],
-                    'period_end' => $data['period_end'],
-                    'monthly_budget' => $data['monthly_budget'],
-                    'grade_table' => $data['grade_table'],
-                ]);
+        GradeRecord::query()->delete();
+        Student::query()->delete();
+        CalculationSession::query()->delete();
 
-            $subjects = Subject::query()->pluck('category', 'name');
+        $session = CalculationSession::create([
+            'period_start' => $data['period_start'],
+            'period_end' => $data['period_end'],
+            'monthly_budget' => $data['monthly_budget'],
+            'grade_table' => $data['grade_table'],
+        ]);
 
-            foreach ($sheets as $sheet) {
-                $groupName = trim((string) ($sheet[0][0] ?? ''));
-                if ($groupName === '' || in_array($groupName, self::IGNORE_SHEETS, true)) {
+        $periodStart = Carbon::parse($data['period_start']);
+        $periodEnd = Carbon::parse($data['period_end']);
+
+        $subjects = Subject::query()->pluck('category', 'name');
+        $sheets = Excel::toArray([], $file);
+
+        $studentsToInsert = [];
+        $studentKeyMap = []; // temp map: sheet+col => unique key
+
+        foreach ($sheets as $sheetIndex => $sheet) {
+            $groupName = trim((string) ($sheet[0][0] ?? ''));
+            if ($groupName === '' || in_array($groupName, self::IGNORE_SHEETS, true)) {
+                continue;
+            }
+
+            $surnames = $sheet[1] ?? [];
+            $firstNames = $sheet[2] ?? [];
+            $ids = $sheet[3] ?? [];
+
+            foreach ($this->detectStudentColumns($ids) as $col) {
+                $surname = trim((string) ($surnames[$col] ?? ''));
+                $firstName = trim((string) ($firstNames[$col] ?? ''));
+                $personalId = trim((string) ($ids[$col] ?? ''));
+
+                if ($personalId === '' || ($surname === '' && $firstName === '')) {
                     continue;
                 }
 
-                $surnames = $sheet[1] ?? [];
-                $firstNames = $sheet[2] ?? [];
-                $ids = $sheet[3] ?? [];
+                $uniqueKey = $sheetIndex . '|' . $col;
 
-                $students = [];
-                foreach ($this->detectStudentColumns($ids) as $col) {
-                    $surname = trim((string) ($surnames[$col] ?? ''));
-                    $firstName = trim((string) ($firstNames[$col] ?? ''));
-                    $personalId = trim((string) ($ids[$col] ?? ''));
+                $studentsToInsert[] = [
+                    'session_id' => $session->id,
+                    'surname' => $surname,
+                    'first_name' => $firstName,
+                    'personal_id' => $personalId,
+                    'group_name' => $groupName,
+                ];
 
-                    if ($personalId === '' || ($surname === '' && $firstName === '')) {
-                        continue;
-                    }
+                $studentKeyMap[$uniqueKey] = [
+                    'personal_id' => $personalId,
+                    'group_name' => $groupName,
+                ];
+            }
+        }
 
-                    $student = Student::create([
-                        'session_id' => $session->id,
-                        'surname' => $surname,
-                        'first_name' => $firstName,
-                        'personal_id' => $personalId,
-                        'group_name' => $groupName,
-                    ]);
+        // 🔥 Bulk insert students
+        Student::insert($studentsToInsert);
 
-                    $students[$col] = $student;
+        // 🔁 Fetch inserted students and build lookup
+        $students = Student::where('session_id', $session->id)
+            ->get()
+            ->keyBy(fn($s) => $s->personal_id . '|' . $s->group_name);
+
+        $gradeRecordsToInsert = [];
+
+        foreach ($sheets as $sheetIndex => $sheet) {
+            $groupName = trim((string) ($sheet[0][0] ?? ''));
+            if ($groupName === '' || in_array($groupName, self::IGNORE_SHEETS, true)) {
+                continue;
+            }
+
+            $ids = $sheet[3] ?? [];
+            $studentColumns = $this->detectStudentColumns($ids);
+
+            $studentsByColumn = [];
+            foreach ($studentColumns as $col) {
+                $key = $sheetIndex . '|' . $col;
+
+                if (!isset($studentKeyMap[$key])) {
+                    continue;
                 }
 
-                $subjectValues = [];
-                foreach (array_slice($sheet, 4) as $row) {
-                    if (trim((string) ($row[0] ?? '')) !== 'Žurnāls') {
-                        continue;
-                    }
+                $map = $studentKeyMap[$key];
+                $lookupKey = $map['personal_id'] . '|' . $map['group_name'];
 
-                    $subject = trim((string) ($row[1] ?? ''));
-                    $gradeType = trim((string) ($row[4] ?? ''));
-                    if (!in_array($gradeType, ['I semestra vērtējums', 'II semestra vērtējums', 'Galīgais vērtējums priekšmetā'], true)) {
-                        continue;
-                    }
-
-                    $dateRaw = trim((string) ($row[3] ?? ''));
-                    if ($dateRaw === '') {
-                        continue;
-                    }
-
-                    $date = Carbon::createFromFormat('d.m.Y', $dateRaw);
-                    if ($date->lt(Carbon::parse($data['period_start'])) || $date->gt(Carbon::parse($data['period_end']))) {
-                        continue;
-                    }
-
-                    foreach ($students as $col => $student) {
-                        $gradeValue = strtolower(trim((string) ($row[$col] ?? '')));
-                        if ($gradeValue === '' || $gradeValue === 'n' || str_contains($gradeValue, '%')) {
-                            continue;
-                        }
-
-                        $priority = $gradeType === 'Galīgais vērtējums priekšmetā' ? 2 : 1;
-                        $key = $student->id . '|' . $subject;
-
-                        if (!isset($subjectValues[$key]) || $priority > $subjectValues[$key]['priority']) {
-                            $subjectValues[$key] = [
-                                'student_id' => $student->id,
-                                'subject_name' => $subject,
-                                'grade_type' => $gradeType,
-                                'grade_value' => $gradeValue,
-                                'grade_date' => $date->toDateString(),
-                                'priority' => $priority,
-                                'category' => $subjects[$subject] ?? 'VIMP',
-                            ];
-                        }
-                    }
-                }
-
-                foreach ($subjectValues as $value) {
-                    GradeRecord::create([
-                        'student_id' => $value['student_id'],
-                        'subject_name' => $value['subject_name'],
-                        'grade_type' => $value['grade_type'],
-                        'grade_value' => $value['grade_value'],
-                        'grade_date' => $value['grade_date'],
-                    ]);
+                if (isset($students[$lookupKey])) {
+                    $studentsByColumn[$col] = $students[$lookupKey];
                 }
             }
 
-            return $session;
-        });
-    }
+            $subjectValues = [];
+
+            foreach (array_slice($sheet, 4) as $row) {
+                if (trim((string) ($row[0] ?? '')) !== 'Žurnāls') {
+                    continue;
+                }
+
+                $subject = trim((string) ($row[1] ?? ''));
+                $gradeType = trim((string) ($row[4] ?? ''));
+
+                if (!in_array($gradeType, [
+                    'I semestra vērtējums',
+                    'II semestra vērtējums',
+                    'Galīgais vērtējums priekšmetā'
+                ], true)) {
+                    continue;
+                }
+
+                $dateRaw = trim((string) ($row[3] ?? ''));
+                if ($dateRaw === '') {
+                    continue;
+                }
+
+                $date = Carbon::createFromFormat('d.m.Y', $dateRaw);
+
+                if ($date->lt($periodStart) || $date->gt($periodEnd)) {
+                    continue;
+                }
+
+                $category = $subjects[$subject] ?? 'VIMP';
+                $priority = $gradeType === 'Galīgais vērtējums priekšmetā' ? 2 : 1;
+
+                foreach ($studentsByColumn as $col => $student) {
+                    $raw = $row[$col] ?? null;
+                    if ($raw === null || $raw === '') {
+                        continue;
+                    }
+
+                    $gradeValue = strtolower(trim((string) $raw));
+
+                    if ($gradeValue === 'n' || str_contains($gradeValue, '%')) {
+                        continue;
+                    }
+
+                    $key = $student->id . '|' . $subject;
+
+                    if (!isset($subjectValues[$key]) || $priority > $subjectValues[$key]['priority']) {
+                        $subjectValues[$key] = [
+                            'student_id' => $student->id,
+                            'subject_name' => $subject,
+                            'grade_type' => $gradeType,
+                            'grade_value' => $gradeValue,
+                            'grade_date' => $date->toDateString(),
+                            'priority' => $priority,
+                        ];
+                    }
+                }
+            }
+
+            foreach ($subjectValues as $value) {
+                $gradeRecordsToInsert[] = [
+                    'student_id' => $value['student_id'],
+                    'subject_name' => $value['subject_name'],
+                    'grade_type' => $value['grade_type'],
+                    'grade_value' => $value['grade_value'],
+                    'grade_date' => $value['grade_date'],
+                ];
+            }
+        }
+
+        // 🔥 Bulk insert grades (chunked for safety)
+        foreach (array_chunk($gradeRecordsToInsert, 1000) as $chunk) {
+            GradeRecord::insert($chunk);
+        }
+
+        return $session;
+    });
+}
 
     public function buildResults(CalculationSession $session, $group = ""): array
     {

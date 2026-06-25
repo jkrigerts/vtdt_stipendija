@@ -154,7 +154,8 @@ class ScholarshipController extends Controller
         $student = Student::with('grades')->findOrFail($grade->student_id);
         $session = $student->session;
         $summary = $this->service->summarizeStudent($student, $student->session->grade_table);
-        $results = $this->service->buildResults($session);
+        $groupName = $student->group_name;
+        $results = $this->service->buildResults($session, $groupName);
         $total = (float) $results['total'];
         $budget = (float) $session->monthly_budget;
 
