@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ScholarshipController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\StudentFromListController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -10,9 +11,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/subjects/upload', [ScholarshipController::class, 'uploadSubjects']);
     Route::post('/calculate', [ScholarshipController::class, 'calculate']);
     Route::get('/results', [ScholarshipController::class, 'results']);
-    Route::get('/results/{group_name}', [ScholarshipController::class, 'group']);
     Route::get('/results/export', [ScholarshipController::class, 'export']);
+    Route::get('/results/{group_name}', [ScholarshipController::class, 'group']);
     Route::post('/results/exclude-grade', [ScholarshipController::class, 'excludeGrade']);
+    Route::get("/students/list/create", [StudentFromListController::class, 'create']);
+    Route::post("/students/list/store", [StudentFromListController::class, 'store']);
 });
 
 

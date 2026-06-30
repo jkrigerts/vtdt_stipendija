@@ -192,6 +192,8 @@
                                 id="student-row-{{ $student->id }}">
                                 <td class="sticky left-0 z-10 bg-white border-r border-stone-100 px-4 py-3 font-medium">
                                     {{ $student->surname }} {{ $student->first_name }}
+                                    {!! $student->excluded ? "<span class='inline-flex items-center px-2 py-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-full'>Izslēgts</span>" : "" !!}
+                                    {!! !$student->current_group ? "<span class='inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-full'>Mainījis</span>" : "" !!}
                                 </td>
                                 <td class="border-r border-stone-100 px-4 py-3">
                                     <span class="group-avg mono" data-student-id="{{ $student->id }}">

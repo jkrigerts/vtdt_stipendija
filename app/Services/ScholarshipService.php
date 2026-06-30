@@ -171,12 +171,17 @@ class ScholarshipService
                 'average' => $summary['average'],
                 'scholarship' => $summary['scholarship'],
                 'insufficient' => $summary['insufficient'],
+                'nv' => $summary['nv'],
+                'noGrade' => $summary['noGrade'],
             ];
         });
 
         return [
             'items' => $items,
-            'total' => $items->sum('scholarship'),
+            'total' => $items->reject(function ($item) {
+                                         return $item['student']->excluded || !$item['student']->current_group;
+                                      })
+            ->sum('scholarship'),
         ];
     }
 
@@ -184,6 +189,8 @@ class ScholarshipService
     {
         $subjects = Subject::query()->pluck('category', 'name');
         $insufficient = 0;
+        $nv = 0;
+        $noGrade = 0;
         $sum = 0;
         $count = 0;
 
@@ -192,8 +199,13 @@ class ScholarshipService
             $min = $category === 'PROF' ? 5 : 4;
             $value = strtolower($grade->grade_value);
 
-            if ($value === 'nv') {
-                $insufficient++;
+            if ($value === 'nv' || $value === 'na') {
+                $nv++;
+                continue;
+            }
+
+            if (preg_replace('/^\s+|\s+$/u', '', $value) == '') {
+                $noGrade++;
                 continue;
             }
 
@@ -212,9 +224,9 @@ class ScholarshipService
         $average = $count > 0 ? round($sum / $count, 2) : null;
         $scholarship = 0.0;
 
-        if ($insufficient === 1) {
+        if ($insufficient + $nv === 1) {
             $scholarship = 15.0;
-        } elseif ($insufficient === 0 && $average !== null) {
+        } elseif ($insufficient + $nv === 0 && $average !== null) {
             foreach ($gradeTable as $row) {
                 if ($average >= (float) $row['min'] && $average <= (float) $row['max']) {
                     $scholarship = (float) $row['amount'];
@@ -223,7 +235,7 @@ class ScholarshipService
             }
         }
 
-        return ['average' => $average, 'scholarship' => $scholarship, 'insufficient' => $insufficient];
+        return ['average' => $average, 'scholarship' => $scholarship, 'insufficient' => $insufficient, 'nv' => $nv, 'noGrade' => $noGrade];
     }
 
     public function groupMatrix(CalculationSession $session, $group = ""): Collection

@@ -167,6 +167,14 @@
         </div>
     </div>
 
+    <div class="flex flex-wrap items-center gap-2">
+        <span class="mono text-xs text-stone-400 mr-1">Noņemt skolēnus, kas ir atskaitīti:</span>
+            <a href="/students/list/create"
+                class="group-anchor-btn mono text-xs px-3 py-1.5 rounded-lg border border-stone-300 bg-white hover:border-stone-500 transition-colors scroll-smooth">
+                Augšupielādēt sarakstu
+            </a>
+    </div>
+
         {{-- ─── GROUP ANCHOR NAVIGATION ────────────────────────────────── --}}
     @if(count($groups) > 1)
         <div class="flex flex-wrap items-center gap-2">
@@ -196,28 +204,38 @@
                     <th class="text-left py-3 px-4 mono text-[11px] uppercase tracking-widest text-stone-400 font-medium hidden md:table-cell">Personas kods</th>
                     <th class="text-left py-3 px-4 mono text-[11px] uppercase tracking-widest text-stone-400 font-medium">Grupa</th>
                     <th class="text-left py-3 px-4 mono text-[11px] uppercase tracking-widest text-stone-400 font-medium">Vidējais</th>
+                    <th class="text-left py-3 px-4 mono text-[11px] uppercase tracking-widest text-stone-400 font-medium">Nesekmīgi</th>
+                    <th class="text-left py-3 px-4 mono text-[11px] uppercase tracking-widest text-stone-400 font-medium">NV</th>
+                    <th class="text-left py-3 px-4 mono text-[11px] uppercase tracking-widest text-stone-400 font-medium">Tukšs</th>
                     <th class="text-left py-3 px-4 mono text-[11px] uppercase tracking-widest text-stone-400 font-medium">Stipendija</th>
                 </tr>
                 </thead>
                 <tbody>
                 @foreach($results['items'] as $row)
-                    <tr class="border-t border-stone-100 hover:bg-amber-50 cursor-pointer transition-colors"
-                        data-student-id="{{ $row['student']->id }}"
-                        data-group="{{ Str::slug($row['student']->group_name) }}"
-                        onclick="scrollToStudent({{ $row['student']->id }}, '{{ Str::slug($row['student']->group_name) }}')">
-                        <td class="py-3 px-4 font-medium">{{ $row['student']->surname }}</td>
-                        <td class="py-3 px-4">{{ $row['student']->first_name }}</td>
-                        <td class="py-3 px-4 mono text-xs text-stone-400 hidden md:table-cell">{{ $row['student']->personal_id }}</td>
-                        <td class="py-3 px-4">
-                            <span class="mono text-xs bg-stone-100 text-stone-600 px-2 py-0.5 rounded-full">{{ $row['student']->group_name }}</span>
-                        </td>
-                        <td class="py-3 px-4 mono avg">{{ $row['average'] ?? '—' }}</td>
-                        <td class="py-3 px-4">
-                            @php $s = $row['scholarship']; @endphp
-                            <span class="scholarship mono font-medium {{ $s > 0 ? 'text-emerald-600' : 'text-stone-400' }}">{{ number_format($s, 2) }}</span>
-                            <span class="text-stone-400 text-xs">EUR</span>
-                        </td>
-                    </tr>
+                    @if(!$row['student']->excluded)
+                        @if($row['student']->current_group)
+                            <tr class="border-t border-stone-100 hover:bg-amber-50 cursor-pointer transition-colors"
+                                data-student-id="{{ $row['student']->id }}"
+                                data-group="{{ Str::slug($row['student']->group_name) }}"
+                                onclick="scrollToStudent({{ $row['student']->id }}, '{{ Str::slug($row['student']->group_name) }}')">
+                                <td class="py-3 px-4 font-medium">{{ $row['student']->surname }}</td>
+                                <td class="py-3 px-4">{{ $row['student']->first_name }}</td>
+                                <td class="py-3 px-4 mono text-xs text-stone-400 hidden md:table-cell">{{ $row['student']->personal_id }}</td>
+                                <td class="py-3 px-4">
+                                    <span class="mono text-xs bg-stone-100 text-stone-600 px-2 py-0.5 rounded-full">{{ $row['student']->group_name }}</span>
+                                </td>
+                                <td class="py-3 px-4 mono avg">{{ $row['average'] ?? '—' }}</td>
+                                <td class="py-3 px-4 mono">{{ $row["insufficient"]}}</td>
+                                <td class="py-3 px-4 mono">{{ $row["nv"] }}</td>
+                                <td class="py-3 px-4 mono">{{ $row["noGrade"] }}</td>
+                                <td class="py-3 px-4">
+                                    @php $s = $row['scholarship']; @endphp
+                                    <span class="scholarship mono font-medium {{ $s > 0 ? 'text-emerald-600' : 'text-stone-400' }}">{{ number_format($s, 2) }}</span>
+                                    <span class="text-stone-400 text-xs">EUR</span>
+                                </td>
+                            </tr>
+                        @endif
+                    @endif
                 @endforeach
                 </tbody>
             </table>

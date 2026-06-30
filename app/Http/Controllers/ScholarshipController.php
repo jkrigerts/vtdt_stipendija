@@ -137,7 +137,7 @@ class ScholarshipController extends Controller
         }
 
         $results = $this->service->buildResults($session);
-
+   
         return Excel::download(new ResultsExport($results['items']), 'scholarship_results.xlsx');
     }
 
